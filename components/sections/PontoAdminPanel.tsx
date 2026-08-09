@@ -46,6 +46,7 @@ export default function PontoAdminPanel({ onBack }: { onBack: () => void }) {
   const [modalForm, setModalForm] = useState({ userId: '', inicio: '', fim: '' });
   const [modalError, setModalError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadRows = useCallback(async (userId: string) => {
     setLoading(true);
@@ -76,6 +77,25 @@ export default function PontoAdminPanel({ onBack }: { onBack: () => void }) {
       fim: row.fim ? toDatetimeLocal(row.fim) : '',
     });
     setModalError('');
+  }
+
+  async function handleDelete(row: PontoRow) {
+    const quem = row.profiles?.nome ?? 'este usuário';
+    if (!confirm(`Excluir o ponto de "${quem}" (${formatDateTime(row.inicio)})? Esta ação não pode ser desfeita.`)) return;
+    setDeleting(row.id);
+    const res = await fetch('/api/admin/pontos/delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: row.id }),
+    });
+    const json = await res.json();
+    if (res.ok) {
+      setRows(prev => prev.filter(r => r.id !== row.id));
+      setMsg({ type: 'success', text: 'Ponto excluído com sucesso.' });
+    } else {
+      setMsg({ type: 'error', text: json.error || 'Erro ao excluir ponto.' });
+    }
+    setDeleting(null);
   }
 
   async function handleModalSubmit(e: React.FormEvent) {
@@ -158,7 +178,7 @@ export default function PontoAdminPanel({ onBack }: { onBack: () => void }) {
                     {r.fim ? formatDateTime(r.fim) : <span style={{ color: 'var(--accent)', fontWeight: 600 }}>🟢 Em andamento</span>}
                   </td>
                   <td className="calc-td">{r.fim ? formatDuration(r.inicio, r.fim) : '—'}</td>
-                  <td className="calc-td">
+                  <td className="calc-td" style={{ whiteSpace: 'nowrap' }}>
                     <button
                       onClick={() => openEdit(r)}
                       style={{
@@ -166,11 +186,27 @@ export default function PontoAdminPanel({ onBack }: { onBack: () => void }) {
                         background: 'transparent', color: 'var(--accent)',
                         fontFamily: '"DM Sans",sans-serif', fontSize: 12,
                         fontWeight: 600, cursor: 'pointer', transition: 'background .15s',
+                        marginRight: 4,
                       }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'rgba(83,74,183,.1)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(r)}
+                      disabled={deleting === r.id}
+                      style={{
+                        padding: '5px 12px', borderRadius: 7, border: 'none',
+                        background: 'transparent', color: 'var(--coral)',
+                        fontFamily: '"DM Sans",sans-serif', fontSize: 12,
+                        fontWeight: 600, cursor: 'pointer', transition: 'background .15s',
+                        opacity: deleting === r.id ? .5 : 1,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(216,90,48,.1)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      {deleting === r.id ? '…' : 'Excluir'}
                     </button>
                   </td>
                 </tr>
