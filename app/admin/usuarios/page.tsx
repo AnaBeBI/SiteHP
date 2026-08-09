@@ -19,10 +19,15 @@ export default function AdminUsuariosPage() {
   const router = useRouter();
 
   const [users, setUsers] = useState<Profile[]>([]);
-  const [form, setForm] = useState({ email:'', nome:'', cargo:'Estagiário', especialidade:'', tipo_cargo:'Geral', hierarquia:'', is_admin: false });
+  const [form, setForm] = useState({ email:'', nome:'', cargo:'Estagiário', especialidade:'', tipo_cargo:'Geral', hierarquia:'', is_admin: false, gerar_laudo_psi: false });
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: 'success'|'error'; text: string } | null>(null);
+
+  const [editUser, setEditUser] = useState<Profile | null>(null);
+  const [editForm, setEditForm] = useState({ nome:'', cargo:'Estagiário', especialidade:'', tipo_cargo:'Geral', hierarquia:'', is_admin: false, gerar_laudo_psi: false });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     if (!loading && (!profile || !profile.is_admin)) router.replace('/');
@@ -54,6 +59,41 @@ export default function AdminUsuariosPage() {
     setDeleting(null);
   }
 
+  function openEdit(u: Profile) {
+    setEditUser(u);
+    setEditForm({
+      nome: u.nome,
+      cargo: u.cargo,
+      especialidade: u.especialidade || '',
+      tipo_cargo: u.tipo_cargo,
+      hierarquia: u.hierarquia || '',
+      is_admin: u.is_admin,
+      gerar_laudo_psi: u.gerar_laudo_psi,
+    });
+    setEditError('');
+  }
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editUser) return;
+    setEditSubmitting(true); setEditError('');
+    const res = await fetch('/api/admin/update-user', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: editUser.id, ...editForm }),
+    });
+    const json = await res.json();
+    if (res.ok) {
+      setMsg({ type: 'success', text: `Usuário "${editForm.nome}" atualizado com sucesso.` });
+      setEditUser(null);
+      const data = await fetch('/api/admin/list-users').then(r => r.json());
+      if (Array.isArray(data)) setUsers(data as Profile[]);
+    } else {
+      setEditError(json.error || 'Erro ao atualizar usuário.');
+    }
+    setEditSubmitting(false);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true); setMsg(null);
@@ -65,7 +105,7 @@ export default function AdminUsuariosPage() {
     const json = await res.json();
     if (res.ok) {
       setMsg({ type: 'success', text: `Usuário criado! Um e-mail de recuperação foi enviado para ${form.email}.` });
-      setForm({ email:'', nome:'', cargo:'Estagiário', especialidade:'', tipo_cargo:'Geral', hierarquia:'', is_admin: false });
+      setForm({ email:'', nome:'', cargo:'Estagiário', especialidade:'', tipo_cargo:'Geral', hierarquia:'', is_admin: false, gerar_laudo_psi: false });
       const data = await fetch('/api/admin/list-users').then(r => r.json());
       if (Array.isArray(data)) setUsers(data as Profile[]);
     } else {
@@ -138,10 +178,14 @@ export default function AdminUsuariosPage() {
                   </select>
                 </div>
               </div>
-              <div style={{ marginTop: 12 }}>
+              <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label className="gen-radio-label">
                   <input type="checkbox" checked={form.is_admin} onChange={e => setForm(f => ({ ...f, is_admin: e.target.checked }))} style={{ width: 16, height: 16 }} />
                   Administrador do sistema (acesso total)
+                </label>
+                <label className="gen-radio-label">
+                  <input type="checkbox" checked={form.gerar_laudo_psi} onChange={e => setForm(f => ({ ...f, gerar_laudo_psi: e.target.checked }))} style={{ width: 16, height: 16 }} />
+                  Pode gerar laudo de Psiquiatria
                 </label>
               </div>
             </div>
@@ -168,6 +212,7 @@ export default function AdminUsuariosPage() {
                 <th className="calc-th">Tipo</th>
                 <th className="calc-th">Hierarquia</th>
                 <th className="calc-th">Admin</th>
+                <th className="calc-th">Laudo Psi</th>
                 <th className="calc-th" />
               </tr>
             </thead>
@@ -180,7 +225,23 @@ export default function AdminUsuariosPage() {
                   <td className="calc-td">{u.tipo_cargo}</td>
                   <td className="calc-td">{u.hierarquia || '—'}</td>
                   <td className="calc-td">{u.is_admin ? '✓' : ''}</td>
-                  <td className="calc-td">
+                  <td className="calc-td">{u.gerar_laudo_psi ? '✓' : ''}</td>
+                  <td className="calc-td" style={{ whiteSpace: 'nowrap' }}>
+                    <button
+                      onClick={() => openEdit(u)}
+                      style={{
+                        padding: '5px 12px', borderRadius: 7, border: 'none',
+                        background: 'transparent', color: 'var(--accent)',
+                        fontFamily: '"DM Sans",sans-serif', fontSize: 12,
+                        fontWeight: 600, cursor: 'pointer',
+                        transition: 'background .15s, color .15s',
+                        marginRight: 4,
+                      }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(83,74,183,.1)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      Editar
+                    </button>
                     {u.id !== profile.id && (
                       <button
                         onClick={() => handleDelete(u.id, u.nome)}
@@ -207,6 +268,99 @@ export default function AdminUsuariosPage() {
         </div>
       </div>
     </div>
+
+    {editUser && (
+      <div
+        onClick={() => !editSubmitting && setEditUser(null)}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 16,
+        }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          className="card"
+          style={{ padding: 0, overflow: 'hidden', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}
+        >
+          <div className="gen-header">
+            <div>
+              <div className="gen-header-title">Editar Usuário</div>
+              <div className="gen-header-sub">{editUser.nome}</div>
+            </div>
+          </div>
+          <div className="gen-body">
+            {editError && <div className="gen-msg gen-error">{editError}</div>}
+            <form onSubmit={handleEditSubmit}>
+              <div className="gen-section">
+                <div className="gen-section-title">Dados Pessoais</div>
+                <div className="gen-grid">
+                  <div className="gen-field">
+                    <label htmlFor="edit-nome">Nome Completo</label>
+                    <input id="edit-nome" type="text" value={editForm.nome}
+                      onChange={e => setEditForm(f => ({ ...f, nome: e.target.value }))} />
+                  </div>
+                </div>
+              </div>
+              <div className="gen-section">
+                <div className="gen-section-title">Cargo & Permissões</div>
+                <div className="gen-grid">
+                  <div className="gen-field">
+                    <label>Cargo</label>
+                    <select value={editForm.cargo} onChange={e => setEditForm(f => ({ ...f, cargo: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 9, border: '2px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}>
+                      {CARGOS.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="gen-field">
+                    <label>Especialidade (opcional)</label>
+                    <select value={editForm.especialidade} onChange={e => setEditForm(f => ({ ...f, especialidade: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 9, border: '2px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}>
+                      <option value="">— Sem especialidade —</option>
+                      {ESPECIALIDADES.map(e => <option key={e}>{e}</option>)}
+                    </select>
+                  </div>
+                  <div className="gen-field">
+                    <label>Tipo de Cargo</label>
+                    <select value={editForm.tipo_cargo} onChange={e => setEditForm(f => ({ ...f, tipo_cargo: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 9, border: '2px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}>
+                      {TIPOS.map(t => <option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div className="gen-field">
+                    <label>Hierarquia (opcional)</label>
+                    <select value={editForm.hierarquia} onChange={e => setEditForm(f => ({ ...f, hierarquia: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 9, border: '2px solid var(--border)', background: 'var(--surface)', color: 'var(--text)', fontSize: 13 }}>
+                      <option value="">— Sem hierarquia —</option>
+                      {HIERARQUIAS.map(h => <option key={h}>{h}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <label className="gen-radio-label">
+                    <input type="checkbox" checked={editForm.is_admin}
+                      disabled={editUser.id === profile.id}
+                      onChange={e => setEditForm(f => ({ ...f, is_admin: e.target.checked }))}
+                      style={{ width: 16, height: 16 }} />
+                    Administrador do sistema (acesso total)
+                  </label>
+                  <label className="gen-radio-label">
+                    <input type="checkbox" checked={editForm.gerar_laudo_psi}
+                      onChange={e => setEditForm(f => ({ ...f, gerar_laudo_psi: e.target.checked }))}
+                      style={{ width: 16, height: 16 }} />
+                    Pode gerar laudo de Psiquiatria
+                  </label>
+                </div>
+              </div>
+              <div className="gen-actions">
+                <button type="button" className="gen-btn secondary" onClick={() => setEditUser(null)} disabled={editSubmitting}>
+                  Cancelar
+                </button>
+                <button type="submit" className="gen-btn primary" disabled={editSubmitting}>
+                  {editSubmitting ? 'Salvando…' : 'Salvar alterações'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    )}
     </AppShell>
   );
 }

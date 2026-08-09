@@ -520,3 +520,57 @@ BEGIN
   -- Atualiza profile (criado pelo trigger) com hierarquia
   UPDATE profiles SET hierarquia = 'Chefe' WHERE id = v_uid;
 END $$;
+
+-- ============================================================
+-- MIGRATION: Laudo de Psiquiatria por permissão (gerar_laudo_psi)
+-- Substitui a regra "admin OU especialidade = Psiquiatra" por
+-- "admin OU gerar_laudo_psi = true", configurável por usuário.
+-- Execute no SQL Editor do Supabase Dashboard.
+-- ============================================================
+ALTER TABLE profiles ADD COLUMN gerar_laudo_psi boolean NOT NULL DEFAULT false;
+
+DROP POLICY IF EXISTS "psiquiatra or admin" ON laudo_templates;
+CREATE POLICY "psiquiatra or admin" ON laudo_templates FOR SELECT TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+      AND (gerar_laudo_psi = true OR is_admin = true)
+  ));
+
+-- ============================================================
+-- MIGRATION: Ponto Eletrônico
+-- Execute no SQL Editor do Supabase Dashboard.
+-- ============================================================
+CREATE TABLE pontos (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  inicio      timestamptz NOT NULL,
+  fim         timestamptz,
+  criado_por  uuid REFERENCES profiles(id) ON DELETE SET NULL,  -- admin que lançou manualmente
+  editado_por uuid REFERENCES profiles(id) ON DELETE SET NULL,  -- admin que corrigiu o registro
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX pontos_user_id_idx ON pontos(user_id);
+CREATE INDEX pontos_inicio_idx ON pontos(inicio);
+
+ALTER TABLE pontos ENABLE ROW LEVEL SECURITY;
+
+-- Usuário lê os próprios pontos
+CREATE POLICY "own read" ON pontos FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Admin lê todos os pontos
+CREATE POLICY "admin read all" ON pontos FOR SELECT
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));
+
+-- Usuário abre/fecha o próprio ponto
+CREATE POLICY "own insert" ON pontos FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "own update" ON pontos FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Admin gerencia todos os pontos (lançamento manual, correção, exclusão)
+CREATE POLICY "admin manage" ON pontos FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true));

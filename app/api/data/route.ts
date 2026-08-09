@@ -52,6 +52,10 @@ export async function GET(request: Request) {
       return NextResponse.json(data ?? []);
     }
     case 'laudo_template': {
+      const { data: profile } = await adminClient.from('profiles').select('is_admin, gerar_laudo_psi').eq('id', user.id).single();
+      if (!profile?.is_admin && !profile?.gerar_laudo_psi) {
+        return NextResponse.json({ error: 'Sem permissão' }, { status: 403 });
+      }
       const tipo = searchParams.get('tipo');
       const resultado = searchParams.get('resultado');
       if (!tipo || !resultado) return NextResponse.json({ texto: '' });

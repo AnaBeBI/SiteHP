@@ -19,6 +19,7 @@ import CertificadosSection from '@/components/sections/CertificadosSection';
 import UniformesSection from '@/components/sections/UniformesSection';
 import VeiculosSection from '@/components/sections/VeiculosSection';
 import MapaSection from '@/components/sections/MapaSection';
+import PontoSection from '@/components/sections/PontoSection';
 
 type AdminId = 'admin';
 type AnySection = SectionId | AdminId;
@@ -37,6 +38,7 @@ function SectionContent({ active }: { active: AnySection }) {
     case 'uniformes': return <UniformesSection />;
     case 'veiculos': return <VeiculosSection />;
     case 'mapa': return <MapaSection />;
+    case 'ponto': return <PontoSection />;
     default: return <HomeSection />;
   }
 }

@@ -11,6 +11,7 @@ export const NAV_ITEMS = [
   { id: 'uniformes', icon: '👔', label: 'Uniformes' },
   { id: 'veiculos', icon: '🚑', label: 'Veículos' },
   { id: 'mapa', icon: '🗺️', label: 'Mapa de Progressão' },
+  { id: 'ponto', icon: '⏱️', label: 'Ponto Eletrônico' },
 ] as const;
 
 export type SectionId = typeof NAV_ITEMS[number]['id'];

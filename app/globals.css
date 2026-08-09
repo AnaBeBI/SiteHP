@@ -627,6 +627,8 @@ a.map-ci-name:hover{text-decoration:underline;color:var(--accent);}
 .gen-btn.primary:hover{filter:brightness(1.1);transform:translateY(-1px);}
 .gen-btn.success{background:linear-gradient(135deg,#10b981,#059669);color:#fff;}
 .gen-btn.success:hover{filter:brightness(1.1);transform:translateY(-1px);}
+.gen-btn.danger{background:linear-gradient(135deg,var(--coral),var(--coral-2));color:#fff;}
+.gen-btn.danger:hover{filter:brightness(1.1);transform:translateY(-1px);}
 .gen-btn.secondary{background:#f1f5f9;color:#1e3a5f;border:2px solid #e2e8f0;}
 .gen-btn.secondary:hover{background:#e2e8f0;}
 .gen-msg{padding:12px 16px;border-radius:10px;margin-bottom:14px;font-size:13px;font-weight:500;}
@@ -773,6 +775,20 @@ a.map-ci-name:hover{text-decoration:underline;color:var(--accent);}
 .bolsa-bar-fill.over{background:var(--coral);}
 .bolsa-warn{margin-top:10px;font-size:12px;font-weight:600;color:var(--coral);background:rgba(216,90,48,.08);padding:8px 12px;border-radius:8px;border:1px solid rgba(216,90,48,.25);}
 .bolsa-resumo{font-size:13px;font-weight:600;color:var(--muted);background:var(--bg);padding:8px 14px;border-radius:20px;border:1px solid var(--border);}
+
+/* ============================================================
+   PONTO ELETRÔNICO
+   ============================================================ */
+.ponto-clock-card{text-align:center;padding:36px 24px;margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:14px;}
+.ponto-status{font-size:14px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
+.ponto-status-active{color:var(--accent);}
+.ponto-clock{font-family:"DM Sans",sans-serif;font-size:44px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+.ponto-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;}
+.ponto-stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;text-align:center;}
+.ponto-stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:8px;}
+.ponto-stat-value{font-size:30px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
+.ponto-stat-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+@media(max-width:520px){.ponto-stats-grid{grid-template-columns:1fr;}.ponto-clock{font-size:34px;}}
 
 /* ============================================================
    DARK MODE OVERRIDES — UI elements with hardcoded colors

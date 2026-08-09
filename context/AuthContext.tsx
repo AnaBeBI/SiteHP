@@ -13,6 +13,7 @@ export interface Profile {
   tipo_cargo: 'Externo' | 'Interno' | 'Geral';
   hierarquia: 'Chefe' | null;
   is_admin: boolean;
+  gerar_laudo_psi: boolean;
 }
 
 interface AuthContextValue {
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!profile) return false;
     if (profile.is_admin) return true;
     if (section === 'laudos') return !LAUDOS_BLOCKED.includes(profile.cargo);
-    if (section === 'psiquiatria') return profile.especialidade === 'Psiquiatra';
+    if (section === 'psiquiatria') return profile.gerar_laudo_psi === true;
     return true;
   }, [profile]);
 
